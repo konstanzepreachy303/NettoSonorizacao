@@ -241,9 +241,10 @@ $cliente_id_hidden = $cliente_dados['id'] ?? (isset($_POST['cliente_id']) ? $_PO
             <label for="cidade" class="form-label">Cidade:</label>
             <input type="text" class="form-control" id="cidade" name="cidade" value="<?php echo $cidade; ?>">
         </div>
-       <div class="col-md-2">
+
+<div class="col-md-2">
     <label for="estado" class="form-label">Estado:</label>
-    <select class="form-control" id="estado" name="estado">
+    <select class="form-select" id="estado" name="estado">
         <option value="">Selecione</option>
         <?php
         $estados = [
@@ -254,17 +255,23 @@ $cliente_id_hidden = $cliente_dados['id'] ?? (isset($_POST['cliente_id']) ? $_PO
 
         foreach ($estados as $uf) {
             $selected = ($estado == $uf) ? "selected" : "";
-            echo "<option value='$uf' $selected>$uf</option>";
+            echo "<option value=\"$uf\" $selected>$uf</option>";
         }
         ?>
     </select>
 </div>
+    
     </div>
     
-    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-        <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-floppy-fill me-2"></i>Salvar Alterações</button>
-        <a href="listar_clientes.php" class="btn btn-secondary btn-lg"><i class="bi bi-x-circle me-2"></i>Cancelar</a>
-    </div>
+<div class="mt-4 text-end">
+    <button type="submit" class="btn btn-primary">
+        <i class="bi bi-floppy-fill me-2"></i>Salvar Alterações
+    </button>
+    <a href="listar_clientes.php" class="btn btn-secondary ms-2">
+        <i class="bi bi-x-circle me-2"></i>Cancelar
+    </a>
+</div>
+    
 </form>
 
 <?php include 'includes/footer.php'; ?>
