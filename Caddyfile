@@ -1,0 +1,11 @@
+{
+    auto_https off
+    admin off
+}
+
+:8080 {
+    root * /app
+    php_server
+    encode zstd gzip
+    file_server
+}
