@@ -1,9 +1,9 @@
 <?php
-$host = getenv('MYSQLHOST') ?: 'caboose.proxy.rlwy.net';
-$port = getenv('MYSQLPORT') ?: '24953';
-$dbname = getenv('MYSQLDATABASE') ?: 'railway';
-$user = getenv('MYSQLUSER') ?: 'root';
-$password = getenv('MYSQLPASSWORD') ?: 'SUA_SENHA_AQUI';
+$host = getenv('MYSQLHOST');
+$port = getenv('MYSQLPORT');
+$dbname = getenv('MYSQLDATABASE');
+$user = getenv('MYSQLUSER');
+$password = getenv('MYSQLPASSWORD');
 
 try {
     $pdo = new PDO(
@@ -13,6 +13,6 @@ try {
     );
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    throw new Exception("Erro na conexão com o banco de dados: " . $e->getMessage());
+    die("Erro banco: " . $e->getMessage());
 }
 ?>
