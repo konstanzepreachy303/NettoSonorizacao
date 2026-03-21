@@ -216,58 +216,86 @@ $cliente_id_hidden = $cliente_dados['id'] ?? (isset($_POST['cliente_id']) ? $_PO
     </div>
 
     <h5 class="mb-3 text-neon-blue"><i class="bi bi-geo-alt-fill me-2"></i>Endereço (Opcional)</h5>
-    <div class="row g-3">
-        <div class="col-md-3">
-            <label for="cep" class="form-label">CEP:</label>
-            <input type="text" class="form-control" id="cep" name="cep" value="<?php echo $cep; ?>" placeholder="00000-000">
-        </div>
-        <div class="col-md-7">
-            <label for="logradouro" class="form-label">Logradouro:</label>
-            <input type="text" class="form-control" id="logradouro" name="logradouro" value="<?php echo $logradouro; ?>">
-        </div>
-        >
-            <label for="numero" class="form-label">Número:</label>
-            <input type="text" class="form-control" id="numero" name="numero" value="<?php echo $numero; ?>">
-        </div>
-        <div class="col-md-4">
-            <label for="complemento" class="form-label">Complemento:</label>
-            <input type="text" class="form-control" id="complemento" name="complemento" value="<?php echo $complemento; ?>">
-        </div>
-        <div class="col-md-4">
-            <label for="bairro" class="form-label">Bairro:</label>
-            <input type="text" class="form-control" id="bairro" name="bairro" value="<?php echo $bairro; ?>">
-        </div>
-        <div class="col-md-4">
-            <label for="cidade" class="form-label">Cidade:</label>
-            <input type="text" class="form-control" id="cidade" name="cidade" value="<?php echo $cidade; ?>">
-        </div>
-
-<div class="col-md-2">
-    <label for="estado" class="form-label">Estado:</label>
-    <select class="form-select" id="estado" name="estado">
-        <option value="">Selecione</option>
-        <?php
-        $estados = [
-            "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA",
-            "MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN",
-            "RS","RO","RR","SC","SP","SE","TO"
-        ];
-
-        foreach ($estados as $uf) {
-            $selected = ($estado == $uf) ? "selected" : "";
-            echo "<option value=\"$uf\" $selected>$uf</option>";
-        }
-        ?>
-    </select>
-</div>
-    
+<div class="row g-3">
+    <div class="col-md-3">
+        <label for="cep" class="form-label">CEP:</label>
+        <input type="text" class="form-control" id="cep" name="cep" value="<?php echo $cep; ?>" placeholder="00000-000">
     </div>
-    
-<div class="mt-4 text-end">
-    <button type="submit" class="btn btn-primary">
+
+    <div class="col-md-7">
+        <label for="logradouro" class="form-label">Logradouro:</label>
+        <input type="text" class="form-control" id="logradouro" name="logradouro" value="<?php echo $logradouro; ?>">
+    </div>
+
+    <div class="col-md-2">
+        <label for="numero" class="form-label">Número:</label>
+        <input type="text" class="form-control" id="numero" name="numero" value="<?php echo $numero; ?>">
+    </div>
+
+    <div class="col-md-4">
+        <label for="complemento" class="form-label">Complemento:</label>
+        <input type="text" class="form-control" id="complemento" name="complemento" value="<?php echo $complemento; ?>">
+    </div>
+
+    <div class="col-md-3">
+        <label for="bairro" class="form-label">Bairro:</label>
+        <input type="text" class="form-control" id="bairro" name="bairro" value="<?php echo $bairro; ?>">
+    </div>
+
+    <div class="col-md-3">
+        <label for="cidade" class="form-label">Cidade:</label>
+        <input type="text" class="form-control" id="cidade" name="cidade" value="<?php echo $cidade; ?>">
+    </div>
+
+    <div class="col-md-2">
+        <label for="estado" class="form-label">Estado:</label>
+        <select class="form-select" id="estado" name="estado">
+            <option value="">Selecione</option>
+            <?php
+            $estados = [
+                "AC" => "Acre",
+                "AL" => "Alagoas",
+                "AP" => "Amapá",
+                "AM" => "Amazonas",
+                "BA" => "Bahia",
+                "CE" => "Ceará",
+                "DF" => "Distrito Federal",
+                "ES" => "Espírito Santo",
+                "GO" => "Goiás",
+                "MA" => "Maranhão",
+                "MT" => "Mato Grosso",
+                "MS" => "Mato Grosso do Sul",
+                "MG" => "Minas Gerais",
+                "PA" => "Pará",
+                "PB" => "Paraíba",
+                "PR" => "Paraná",
+                "PE" => "Pernambuco",
+                "PI" => "Piauí",
+                "RJ" => "Rio de Janeiro",
+                "RN" => "Rio Grande do Norte",
+                "RS" => "Rio Grande do Sul",
+                "RO" => "Rondônia",
+                "RR" => "Roraima",
+                "SC" => "Santa Catarina",
+                "SP" => "São Paulo",
+                "SE" => "Sergipe",
+                "TO" => "Tocantins"
+            ];
+
+            foreach ($estados as $uf => $nomeEstado) {
+                $selected = ($estado === $uf) ? 'selected' : '';
+                echo "<option value=\"{$uf}\" {$selected}>{$uf} - {$nomeEstado}</option>";
+            }
+            ?>
+        </select>
+    </div>
+</div>
+
+<div class="mt-4 d-flex justify-content-end gap-2 flex-wrap">
+    <button type="submit" class="btn btn-primary btn-lg">
         <i class="bi bi-floppy-fill me-2"></i>Salvar Alterações
     </button>
-    <a href="listar_clientes.php" class="btn btn-secondary ms-2">
+    <a href="listar_clientes.php" class="btn btn-secondary btn-lg">
         <i class="bi bi-x-circle me-2"></i>Cancelar
     </a>
 </div>
