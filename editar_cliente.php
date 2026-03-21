@@ -225,7 +225,7 @@ $cliente_id_hidden = $cliente_dados['id'] ?? (isset($_POST['cliente_id']) ? $_PO
             <label for="logradouro" class="form-label">Logradouro:</label>
             <input type="text" class="form-control" id="logradouro" name="logradouro" value="<?php echo $logradouro; ?>">
         </div>
-        <div class="col-md-2">
+        >
             <label for="numero" class="form-label">Número:</label>
             <input type="text" class="form-control" id="numero" name="numero" value="<?php echo $numero; ?>">
         </div>
@@ -241,10 +241,24 @@ $cliente_id_hidden = $cliente_dados['id'] ?? (isset($_POST['cliente_id']) ? $_PO
             <label for="cidade" class="form-label">Cidade:</label>
             <input type="text" class="form-control" id="cidade" name="cidade" value="<?php echo $cidade; ?>">
         </div>
-        <div class="col-md-2">
-            <label for="estado" class="form-label">Estado:</label>
-            <input type="text" class="form-control" id="estado" name="estado" value="<?php echo $estado; ?>" maxlength="2">
-        </div>
+       <div class="col-md-2">
+    <label for="estado" class="form-label">Estado:</label>
+    <select class="form-control" id="estado" name="estado">
+        <option value="">Selecione</option>
+        <?php
+        $estados = [
+            "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA",
+            "MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN",
+            "RS","RO","RR","SC","SP","SE","TO"
+        ];
+
+        foreach ($estados as $uf) {
+            $selected = ($estado == $uf) ? "selected" : "";
+            echo "<option value='$uf' $selected>$uf</option>";
+        }
+        ?>
+    </select>
+</div>
     </div>
     
     <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
