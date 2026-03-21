@@ -3,7 +3,7 @@ $host = getenv('MYSQLHOST') ?: 'caboose.proxy.rlwy.net';
 $port = getenv('MYSQLPORT') ?: '24953';
 $dbname = getenv('MYSQLDATABASE') ?: 'railway';
 $user = getenv('MYSQLUSER') ?: 'root';
-$password = getenv('MYSQLPASSWORD') ?: 'gtveFsqKLHWtogxpzwookQtcaXGFwSDI';
+$password = getenv('MYSQLPASSWORD') ?: 'SUA_SENHA_AQUI';
 
 try {
     $pdo = new PDO(
