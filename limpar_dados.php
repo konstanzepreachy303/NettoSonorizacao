@@ -1,11 +1,8 @@
 <?php
-// Script para limpar todos os dados de serviços e clientes
-// ATENÇÃO: Esta ação é IRREVERSÍVEL!
-
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-if (session_status() == PHP_SESSION_NONE) {
+if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
@@ -15,16 +12,13 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 require_once 'includes/conexao.php';
-include 'includes/header.php';
 
 $mensagem_sucesso = '';
 $mensagem_erro = '';
 
-// Senha de segurança
 define('SENHA_LIMPEZA', 'Gabriel021100@');
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['confirmar_limpeza'])) {
-
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirmar_limpeza'])) {
     $confirmacao_usuario = strtoupper(trim($_POST['confirmacao'] ?? ''));
     $senha_usuario = trim($_POST['senha'] ?? '');
 
@@ -34,27 +28,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['confirmar_limpeza'])) 
         $mensagem_erro = "Senha incorreta.";
     } else {
         try {
-            // Desabilita foreign keys
             $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
-
-            // Limpa tabelas
             $pdo->exec("TRUNCATE TABLE servicos");
             $pdo->exec("TRUNCATE TABLE clientes");
-
-            // Habilita novamente
             $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
 
             $mensagem_sucesso = "Todos os dados foram apagados com sucesso!";
-
         } catch (PDOException $e) {
             try {
                 $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
-            } catch (Exception $ignore) {}
+            } catch (Exception $ignore) {
+            }
 
             $mensagem_erro = "Erro ao limpar os dados: " . $e->getMessage();
         }
     }
 }
+
+include 'includes/header.php';
 ?>
 
 <div class="container-fluid py-4">
@@ -70,36 +61,58 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['confirmar_limpeza'])) 
                 <div class="card-body">
 
                     <?php if ($mensagem_erro): ?>
-                        <div class="alert alert-danger"><?php echo $mensagem_erro; ?></div>
+                        <div class="alert alert-danger" role="alert">
+                            <?php echo htmlspecialchars($mensagem_erro); ?>
+                        </div>
                     <?php endif; ?>
 
                     <?php if ($mensagem_sucesso): ?>
-                        <div class="alert alert-success"><?php echo $mensagem_sucesso; ?></div>
-                        <a href="painel_admin.php" class="btn btn-primary">Voltar</a>
+                        <div class="alert alert-success" role="alert">
+                            <?php echo htmlspecialchars($mensagem_sucesso); ?>
+                        </div>
+
+                        <div class="mt-3">
+                            <a href="painel_admin.php" class="btn btn-primary me-2">Voltar ao Painel Admin</a>
+                            <a href="dashboard.php" class="btn btn-secondary">Ir para Dashboard</a>
+                        </div>
                     <?php else: ?>
 
-                    <div class="alert alert-warning">
-                        <strong>ATENÇÃO:</strong> Esta ação irá apagar TODOS os clientes e serviços.
-                    </div>
-
-                    <form method="POST" action="limpar_dados.php" onsubmit="return confirmarLimpeza();">
-                        <div class="mb-3">
-                            <label>Digite CONFIRMAR:</label>
-                            <input type="text" class="form-control" name="confirmacao" required>
+                        <div class="alert alert-warning" role="alert">
+                            <strong>ATENÇÃO:</strong> esta ação irá apagar todos os clientes e serviços.
                         </div>
 
-                        <div class="mb-3">
-                            <label>Senha de segurança:</label>
-                            <input type="password" class="form-control" name="senha" required>
-                        </div>
+                        <form method="POST" action="limpar_dados.php" onsubmit="return confirmarLimpeza();">
+                            <div class="mb-3">
+                                <label for="confirmacao" class="form-label">Digite <strong>CONFIRMAR</strong>:</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="confirmacao"
+                                    name="confirmacao"
+                                    required
+                                    autocomplete="off"
+                                >
+                            </div>
 
-                        <div class="d-flex justify-content-between">
-                            <a href="painel_admin.php" class="btn btn-secondary">Cancelar</a>
-                            <button type="submit" name="confirmar_limpeza" class="btn btn-danger">
-                                Apagar Todos os Dados
-                            </button>
-                        </div>
-                    </form>
+                            <div class="mb-3">
+                                <label for="senha" class="form-label">Senha de segurança:</label>
+                                <input
+                                    type="password"
+                                    class="form-control"
+                                    id="senha"
+                                    name="senha"
+                                    required
+                                    autocomplete="off"
+                                >
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <a href="painel_admin.php" class="btn btn-secondary">Cancelar</a>
+                                <button type="submit" name="confirmar_limpeza" class="btn btn-danger">
+                                    Apagar Todos os Dados
+                                </button>
+                            </div>
+                        </form>
 
                     <?php endif; ?>
 
