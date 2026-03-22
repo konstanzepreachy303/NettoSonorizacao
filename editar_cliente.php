@@ -1,4 +1,4 @@
-
+<?php
 
 // --- FUNÇÕES DE VALIDAÇÃO CPF/CNPJ EM PHP (SERVER-SIDE) ---
 function validarCPF_PHP($cpf) {
