@@ -1,7 +1,3 @@
-<?php
-// Ativar exibição de erros para depuração (REMOVER EM PRODUÇÃO FINAL)
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
 
 // Inicia a sessão para acesso às variáveis de sessão e controle de login
 if (session_status() == PHP_SESSION_NONE) {
@@ -18,7 +14,6 @@ require_once 'includes/conexao.php';
 include 'includes/header.php';
 
 // Definir a lista de tipos de serviço para o campo select de filtro
-// ATUALIZADA com 'Visita Técnica'
 $tipos_servico_disponiveis = [
     'Manutenção',
     'Instalação',
@@ -71,19 +66,15 @@ if ($filtro_pago) {
 // Filtro por CPF/CNPJ sem formatação
 $filtro_cpf = isset($_GET['filtro_cpf']) && $_GET['filtro_cpf'] !== '' ? htmlspecialchars($_GET['filtro_cpf']) : '';
 if ($filtro_cpf) {
-    // Remove todos os caracteres não numéricos da entrada do usuário
     $filtro_cpf_sanitizado = preg_replace('/[^0-9]/', '', $filtro_cpf);
-    // Adiciona o filtro à query, removendo a formatação também da coluna do banco
-    $sql .= " AND REPLACE(REPLACE(REPLACE(c.cpf_cnpj, '.', ''), '-', ''), ' ', '') LIKE :cpf_sanitizado";
+    $sql .= " AND REPLACE(REPLACE(REPLACE(REPLACE(c.cpf_cnpj, '.', ''), '-', ''), '/', ''), ' ', '') LIKE :cpf_sanitizado";
     $params[':cpf_sanitizado'] = "%" . $filtro_cpf_sanitizado . "%";
 }
 
 // Lógica para o filtro de placa (ignora formatação)
 $filtro_placa = isset($_GET['filtro_placa']) ? htmlspecialchars(trim($_GET['filtro_placa'])) : '';
 if (!empty($filtro_placa)) {
-    // Remove qualquer caractere que não seja letra ou número da entrada
     $filtro_placa_sanitizada = preg_replace('/[^a-zA-Z0-9]/', '', $filtro_placa);
-    // Remove o hífen da coluna `placa` no banco de dados para a comparação
     $sql .= " AND REPLACE(s.placa, '-', '') LIKE :placa_sanitizada";
     $params[':placa_sanitizada'] = "%" . $filtro_placa_sanitizada . "%";
 }
@@ -99,7 +90,7 @@ $sql .= " ORDER BY s.id DESC";
 try {
     $stmt = $pdo->prepare($sql);
     foreach ($params as $key => &$val) {
-        $stmt->bindParam($key, $val);
+        $stmt->bindValue($key, $val);
     }
     $stmt->execute();
     $servicos = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -107,7 +98,7 @@ try {
     error_log("Erro ao buscar serviços: " . $e->getMessage());
     $mensagem_erro .= "Erro ao buscar os serviços no banco de dados.";
 }
-
+unset($val);
 ?>
 
 <h1 class="mb-4 text-center text-white"><i class="bi bi-card-list me-2 text-neon-blue"></i>Lista de Serviços</h1>
@@ -196,17 +187,25 @@ if ($mensagem_erro) {
         <tbody>
             <?php if (count($servicos) > 0): ?>
                 <?php foreach ($servicos as $servico): ?>
+                    <?php
+                        $placa_exibicao = !empty($servico['placa']) ? $servico['placa'] : 'N/A';
+                        $data_entrada_exibicao = !empty($servico['data_entrada']) ? date('d/m/Y', strtotime($servico['data_entrada'])) : 'N/A';
+                        $data_saida_exibicao = !empty($servico['data_saida']) ? date('d/m/Y', strtotime($servico['data_saida'])) : 'N/A';
+                        $cpf_exibicao = !empty($servico['cpf_cliente']) ? $servico['cpf_cliente'] : 'N/A';
+                        $tipo_servico_exibicao = !empty($servico['tipo_servico']) ? $servico['tipo_servico'] : 'N/A';
+                        $valor_exibicao = is_numeric($servico['valor']) ? number_format((float)$servico['valor'], 2, ',', '.') : '0,00';
+                    ?>
                     <tr>
                         <th scope="row"><?php echo htmlspecialchars($servico['id']); ?></th>
                         <td><?php echo htmlspecialchars($servico['nome_cliente']); ?></td>
-                        <td><?php echo htmlspecialchars($servico['cpf_cliente'] ?? 'N/A'); ?></td>
-                        <td><?php echo htmlspecialchars($servico['placa']); ?></td>
-                        <td><?php echo date('d/m/Y', strtotime(htmlspecialchars($servico['data_entrada']))); ?></td>
-                        <td><?php echo date('d/m/Y', strtotime(htmlspecialchars($servico['data_saida']))); ?></td>
+                        <td><?php echo htmlspecialchars($cpf_exibicao); ?></td>
+                        <td><?php echo htmlspecialchars($placa_exibicao); ?></td>
+                        <td><?php echo htmlspecialchars($data_entrada_exibicao); ?></td>
+                        <td><?php echo htmlspecialchars($data_saida_exibicao); ?></td>
                         <td>
                             <span class="badge
                                 <?php
-                                switch (htmlspecialchars($servico['tipo_servico'])) {
+                                switch ($tipo_servico_exibicao) {
                                     case 'Manutenção': echo 'bg-warning text-dark'; break;
                                     case 'Instalação': echo 'bg-info'; break;
                                     case 'Orçamento': echo 'bg-secondary'; break;
@@ -215,12 +214,12 @@ if ($mensagem_erro) {
                                 }
                                 ?>
                             ">
-                                <?php echo htmlspecialchars($servico['tipo_servico']); ?>
+                                <?php echo htmlspecialchars($tipo_servico_exibicao); ?>
                             </span>
                         </td>
-                        <td>R$ <?php echo number_format(htmlspecialchars($servico['valor']), 2, ',', '.'); ?></td>
+                        <td>R$ <?php echo $valor_exibicao; ?></td>
                         <td>
-                            <?php if ($servico['pago'] == 'Sim'): ?>
+                            <?php if (($servico['pago'] ?? '') == 'Sim'): ?>
                                 <span class="badge bg-success">Pago</span>
                             <?php else: ?>
                                 <span class="badge bg-danger">Não Pago</span>
