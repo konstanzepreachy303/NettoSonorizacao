@@ -1,7 +1,4 @@
-<?php
-// Ativar exibição de erros para depuração (REMOVER EM PRODUÇÃO FINAL)
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+
 
 // Inicia a sessão para acesso às variáveis de sessão e controle de login
 if (session_status() == PHP_SESSION_NONE) {
