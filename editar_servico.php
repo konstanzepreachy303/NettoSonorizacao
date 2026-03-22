@@ -17,7 +17,6 @@ if (!isset($_SESSION['admin_id'])) {
 require_once 'includes/conexao.php';
 
 // Definir a lista de tipos de serviço para o campo select.
-// LISTA ATUALIZADA com 'Visita Técnica'
 $tipos_servico_disponiveis = [
     'Manutenção',
     'Instalação',
@@ -28,9 +27,9 @@ $tipos_servico_disponiveis = [
 
 $mensagem_sucesso = "";
 $mensagem_erro = "";
-$servico = null; // Inicializa a variável como null
+$servico = null;
 $servico_id = null;
-$clientes_disponiveis = []; // Para o select de clientes
+$clientes_disponiveis = [];
 
 // Carregar clientes para o campo select
 try {
@@ -71,18 +70,15 @@ if ($servico_id) {
     exit();
 }
 
-
 // --- Lógica para processar a submissão do formulário de edição (POST) ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Validação do ID do formulário
     $form_servico_id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
-    
+
     if ($form_servico_id != $servico['id']) {
         $mensagem_erro = "Erro de validação: O ID do formulário não corresponde ao ID do serviço.";
     } else {
-        // Filtra e sanitiza os dados do formulário
         $cliente_id = filter_input(INPUT_POST, 'cliente_id', FILTER_SANITIZE_NUMBER_INT);
-        
+
         // --- LÓGICA DE PADRONIZAÇÃO DA PLACA ---
         $placa_input = preg_replace('/[^a-zA-Z0-9]/', '', $_POST['placa'] ?? '');
         $placa_input = strtoupper($placa_input);
@@ -97,6 +93,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $placa = $placa_input;
         }
 
+        $placa = empty($placa) ? null : $placa;
+
         $modelo = htmlspecialchars(trim($_POST['modelo'] ?? ''));
         $marca = htmlspecialchars(trim($_POST['marca'] ?? ''));
         $ano_fab = filter_input(INPUT_POST, 'ano_fab', FILTER_SANITIZE_NUMBER_INT);
@@ -107,22 +105,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $tipo_servico = htmlspecialchars(trim($_POST['tipo_servico'] ?? ''));
         $descricao_problema = htmlspecialchars(trim($_POST['descricao_problema'] ?? ''));
         $servico_executado = htmlspecialchars(trim($_POST['servico_executado'] ?? ''));
-        // AQUI: A correção do valor para salvar no banco.
-        $valor_brl = str_replace(['.', ','], ['', '.'], trim($_POST['valor'] ?? ''));
+        $valor_original = trim($_POST['valor'] ?? '');
+        $valor_brl = str_replace(['.', ','], ['', '.'], $valor_original);
         $valor = filter_var($valor_brl, FILTER_VALIDATE_FLOAT);
-        
+
         $garantia = filter_input(INPUT_POST, 'garantia', FILTER_SANITIZE_NUMBER_INT);
         $pago = htmlspecialchars(trim($_POST['pago'] ?? 'Não'));
         $parcelado = htmlspecialchars(trim($_POST['parcelado'] ?? 'Não'));
         $num_parcelas = filter_input(INPUT_POST, 'num_parcelas', FILTER_SANITIZE_NUMBER_INT);
 
-        // A linha 127 agora funciona porque $servico já foi carregado
+        $data_entrada = empty($data_entrada) ? null : $data_entrada;
+        $data_saida = empty($data_saida) ? null : $data_saida;
+
+        // Mantém os dados no formulário em caso de erro
         $servico = array_merge($servico, $_POST);
-        // Atualiza a placa no array $servico para refletir o valor padronizado
-        $servico['placa'] = $placa;
+        $servico['placa'] = $placa ?? '';
+        $servico['data_entrada'] = $data_entrada ?? '';
+        $servico['data_saida'] = $data_saida ?? '';
+        $servico['valor'] = ($valor !== false && $valor !== null) ? $valor : ($servico['valor'] ?? null);
 
         // Validação dos campos obrigatórios
-        if (empty($cliente_id) || empty($placa) || empty($data_entrada) || empty($data_saida) || empty($tipo_servico) || empty($descricao_problema) || empty($servico_executado) || $valor === null || $valor === false || $valor < 0 || empty($pago)) {
+        if (
+            empty($cliente_id) ||
+            empty($tipo_servico) ||
+            empty($descricao_problema) ||
+            empty($servico_executado) ||
+            $valor === null ||
+            $valor === false ||
+            $valor < 0 ||
+            empty($pago)
+        ) {
             $mensagem_erro = "Erro: Por favor, preencha todos os campos obrigatórios corretamente.";
         } elseif ($parcelado === 'Sim' && (empty($num_parcelas) || !is_numeric($num_parcelas) || $num_parcelas <= 0)) {
             $mensagem_erro = "Erro: Se o pagamento for parcelado, o número de parcelas é obrigatório e deve ser um número positivo.";
@@ -134,34 +146,51 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
 
                 $stmt = $pdo->prepare("UPDATE servicos SET
-                    cliente_id = :cliente_id, placa = :placa, modelo = :modelo, marca = :marca,
-                    ano_fab = :ano_fab, ano_mod = :ano_mod, cor = :cor,
-                    data_entrada = :data_entrada, data_saida = :data_saida,
-                    tipo_servico = :tipo_servico, descricao_problema = :descricao_problema,
-                    servico_executado = :servico_executado, valor = :valor,
-                    garantia = :garantia, data_fim_garantia = :data_fim_garantia,
-                    pago = :pago, parcelado = :parcelado, num_parcelas = :num_parcelas,
+                    cliente_id = :cliente_id,
+                    placa = :placa,
+                    modelo = :modelo,
+                    marca = :marca,
+                    ano_fab = :ano_fab,
+                    ano_mod = :ano_mod,
+                    cor = :cor,
+                    data_entrada = :data_entrada,
+                    data_saida = :data_saida,
+                    tipo_servico = :tipo_servico,
+                    descricao_problema = :descricao_problema,
+                    servico_executado = :servico_executado,
+                    valor = :valor,
+                    garantia = :garantia,
+                    data_fim_garantia = :data_fim_garantia,
+                    pago = :pago,
+                    parcelado = :parcelado,
+                    num_parcelas = :num_parcelas,
                     updated_at = NOW()
                 WHERE id = :id");
 
                 $stmt->bindParam(':cliente_id', $cliente_id, PDO::PARAM_INT);
-                $stmt->bindParam(':placa', $placa, PDO::PARAM_STR);
-                $stmt->bindParam(':modelo', $modelo, PDO::PARAM_STR);
-                $stmt->bindParam(':marca', $marca, PDO::PARAM_STR);
-                $stmt->bindParam(':ano_fab', $ano_fab, PDO::PARAM_INT);
-                $stmt->bindParam(':ano_mod', $ano_mod, PDO::PARAM_INT);
-                $stmt->bindParam(':cor', $cor, PDO::PARAM_STR);
-                $stmt->bindParam(':data_entrada', $data_entrada, PDO::PARAM_STR);
-                $stmt->bindParam(':data_saida', $data_saida, PDO::PARAM_STR);
+
+                if ($placa === null) {
+                    $stmt->bindValue(':placa', null, PDO::PARAM_NULL);
+                } else {
+                    $stmt->bindParam(':placa', $placa, PDO::PARAM_STR);
+                }
+
+                $stmt->bindValue(':modelo', empty($modelo) ? null : $modelo, PDO::PARAM_STR);
+                $stmt->bindValue(':marca', empty($marca) ? null : $marca, PDO::PARAM_STR);
+                $stmt->bindValue(':ano_fab', empty($ano_fab) ? null : $ano_fab, empty($ano_fab) ? PDO::PARAM_NULL : PDO::PARAM_INT);
+                $stmt->bindValue(':ano_mod', empty($ano_mod) ? null : $ano_mod, empty($ano_mod) ? PDO::PARAM_NULL : PDO::PARAM_INT);
+                $stmt->bindValue(':cor', empty($cor) ? null : $cor, PDO::PARAM_STR);
+                $stmt->bindValue(':data_entrada', $data_entrada, $data_entrada === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+                $stmt->bindValue(':data_saida', $data_saida, $data_saida === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
                 $stmt->bindParam(':tipo_servico', $tipo_servico, PDO::PARAM_STR);
                 $stmt->bindParam(':descricao_problema', $descricao_problema, PDO::PARAM_STR);
                 $stmt->bindParam(':servico_executado', $servico_executado, PDO::PARAM_STR);
                 $stmt->bindParam(':valor', $valor);
-                $stmt->bindParam(':garantia', $garantia, PDO::PARAM_INT);
-                $stmt->bindParam(':data_fim_garantia', $data_fim_garantia, PDO::PARAM_STR);
+                $stmt->bindValue(':garantia', empty($garantia) ? null : $garantia, empty($garantia) ? PDO::PARAM_NULL : PDO::PARAM_INT);
+                $stmt->bindValue(':data_fim_garantia', $data_fim_garantia, $data_fim_garantia === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
                 $stmt->bindParam(':pago', $pago, PDO::PARAM_STR);
                 $stmt->bindParam(':parcelado', $parcelado, PDO::PARAM_STR);
-                $stmt->bindParam(':num_parcelas', $num_parcelas, PDO::PARAM_INT);
+                $stmt->bindValue(':num_parcelas', empty($num_parcelas) ? null : $num_parcelas, empty($num_parcelas) ? PDO::PARAM_NULL : PDO::PARAM_INT);
                 $stmt->bindParam(':id', $servico_id, PDO::PARAM_INT);
 
                 if ($stmt->execute()) {
@@ -181,17 +210,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
-// Inclui o header APÓS processar o POST (para evitar erro de headers already sent)
+// Inclui o header APÓS processar o POST
 include 'includes/header.php';
 
-// Se o serviço foi encontrado no GET, o formulário será preenchido com esses dados
 if (!$servico) {
     header("Location: listar_servicos.php");
     exit();
 }
-$valor_formatado = ($servico['valor'] !== null) ? number_format($servico['valor'], 2, ',', '.') : '';
 
-// Exibe mensagens de sucesso/erro da sessão
+$valor_formatado = ($servico['valor'] !== null && $servico['valor'] !== '') ? number_format((float)$servico['valor'], 2, ',', '.') : '';
+
 if (isset($_SESSION['servico_sucesso'])) {
     $mensagem_sucesso = $_SESSION['servico_sucesso'];
     unset($_SESSION['servico_sucesso']);
@@ -200,7 +228,6 @@ if (isset($_SESSION['servico_erro'])) {
     $mensagem_erro = $_SESSION['servico_erro'];
     unset($_SESSION['servico_erro']);
 }
-
 ?>
 
 <h1 class="mb-4 text-center text-white">
@@ -220,7 +247,7 @@ if ($mensagem_erro) {
 
 <form action="editar_servico.php?id=<?php echo htmlspecialchars($servico['id']); ?>" method="POST" class="bg-dark p-4 rounded shadow-lg text-white" id="servicoForm">
     <input type="hidden" name="id" value="<?php echo htmlspecialchars($servico['id']); ?>">
-    
+
     <div class="row">
         <div class="col-md-6 mb-3">
             <label for="cliente_id" class="form-label">Cliente <span class="text-danger">*</span></label>
@@ -243,7 +270,7 @@ if ($mensagem_erro) {
             <select class="form-select" id="tipo_servico" name="tipo_servico" required>
                 <option value="">Selecione o tipo</option>
                 <?php foreach ($tipos_servico_disponiveis as $tipo): ?>
-                    <option value="<?php echo htmlspecialchars($tipo); ?>" <?php echo (isset($servico['tipo_servico']) && $servico['tipo_servico'] == $tipo) ? 'selected' : ''; ?>>
+                    <option value="<?php echo htmlspecialchars($tipo); ?>" <?php echo ((isset($servico['tipo_servico']) && $servico['tipo_servico'] == $tipo) ? 'selected' : ''); ?>>
                         <?php echo htmlspecialchars($tipo); ?>
                     </option>
                 <?php endforeach; ?>
@@ -253,12 +280,12 @@ if ($mensagem_erro) {
 
     <div class="row">
         <div class="col-md-6 mb-3">
-            <label for="data_entrada" class="form-label">Data de Entrada <span class="text-danger">*</span></label>
-            <input type="date" class="form-control" id="data_entrada" name="data_entrada" value="<?php echo htmlspecialchars($servico['data_entrada']); ?>" required>
+            <label for="data_entrada" class="form-label">Data de Entrada</label>
+            <input type="date" class="form-control" id="data_entrada" name="data_entrada" value="<?php echo htmlspecialchars($servico['data_entrada'] ?? ''); ?>">
         </div>
         <div class="col-md-6 mb-3">
-            <label for="data_saida" class="form-label">Data de Saída <span class="text-danger">*</span></label>
-            <input type="date" class="form-control" id="data_saida" name="data_saida" value="<?php echo htmlspecialchars($servico['data_saida']); ?>" required>
+            <label for="data_saida" class="form-label">Data de Saída</label>
+            <input type="date" class="form-control" id="data_saida" name="data_saida" value="<?php echo htmlspecialchars($servico['data_saida'] ?? ''); ?>">
         </div>
     </div>
 
@@ -266,30 +293,30 @@ if ($mensagem_erro) {
     <h5 class="mb-3 text-neon-blue"><i class="bi bi-car-fill me-2"></i>Informações do Equipamento/Veículo (Opcional)</h5>
     <div class="row">
         <div class="col-md-4 mb-3">
-            <label for="placa" class="form-label">Placa <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" id="placa" name="placa" placeholder="ABC-1234" value="<?php echo htmlspecialchars($servico['placa']); ?>" required>
+            <label for="placa" class="form-label">Placa</label>
+            <input type="text" class="form-control" id="placa" name="placa" placeholder="ABC-1234" value="<?php echo htmlspecialchars($servico['placa'] ?? ''); ?>">
         </div>
         <div class="col-md-4 mb-3">
             <label for="modelo" class="form-label">Modelo</label>
-            <input type="text" class="form-control" id="modelo" name="modelo" placeholder="Ex: Celta, Onix, Mesa de Som" value="<?php echo htmlspecialchars($servico['modelo']); ?>">
+            <input type="text" class="form-control" id="modelo" name="modelo" placeholder="Ex: Celta, Onix, Mesa de Som" value="<?php echo htmlspecialchars($servico['modelo'] ?? ''); ?>">
         </div>
         <div class="col-md-4 mb-3">
             <label for="marca" class="form-label">Marca</label>
-            <input type="text" class="form-control" id="marca" name="marca" placeholder="Ex: Chevrolet, Behringer" value="<?php echo htmlspecialchars($servico['marca']); ?>">
+            <input type="text" class="form-control" id="marca" name="marca" placeholder="Ex: Chevrolet, Behringer" value="<?php echo htmlspecialchars($servico['marca'] ?? ''); ?>">
         </div>
     </div>
     <div class="row">
         <div class="col-md-4 mb-3">
             <label for="ano_fab" class="form-label">Ano Fabricação</label>
-            <input type="number" class="form-control" id="ano_fab" name="ano_fab" placeholder="AAAA" value="<?php echo htmlspecialchars($servico['ano_fab']); ?>">
+            <input type="number" class="form-control" id="ano_fab" name="ano_fab" placeholder="AAAA" value="<?php echo htmlspecialchars($servico['ano_fab'] ?? ''); ?>">
         </div>
         <div class="col-md-4 mb-3">
             <label for="ano_mod" class="form-label">Ano Modelo</label>
-            <input type="number" class="form-control" id="ano_mod" name="ano_mod" placeholder="AAAA" value="<?php echo htmlspecialchars($servico['ano_mod']); ?>">
+            <input type="number" class="form-control" id="ano_mod" name="ano_mod" placeholder="AAAA" value="<?php echo htmlspecialchars($servico['ano_mod'] ?? ''); ?>">
         </div>
         <div class="col-md-4 mb-3">
             <label for="cor" class="form-label">Cor</label>
-            <input type="text" class="form-control" id="cor" name="cor" placeholder="Ex: Preto, Branco" value="<?php echo htmlspecialchars($servico['cor']); ?>">
+            <input type="text" class="form-control" id="cor" name="cor" placeholder="Ex: Preto, Branco" value="<?php echo htmlspecialchars($servico['cor'] ?? ''); ?>">
         </div>
     </div>
 
@@ -297,11 +324,11 @@ if ($mensagem_erro) {
     <h5 class="mb-3 text-neon-blue"><i class="bi bi-tools me-2"></i>Detalhes do Serviço</h5>
     <div class="mb-3">
         <label for="descricao_problema" class="form-label">Problema Relatado <span class="text-danger">*</span></label>
-        <textarea class="form-control" id="descricao_problema" name="descricao_problema" rows="5" placeholder="Descrição do problema relatado pelo cliente..." required><?php echo htmlspecialchars($servico['descricao_problema']); ?></textarea>
+        <textarea class="form-control" id="descricao_problema" name="descricao_problema" rows="5" placeholder="Descrição do problema relatado pelo cliente..." required><?php echo htmlspecialchars($servico['descricao_problema'] ?? ''); ?></textarea>
     </div>
     <div class="mb-3">
         <label for="servico_executado" class="form-label">Serviço Executado <span class="text-danger">*</span></label>
-        <textarea class="form-control" id="servico_executado" name="servico_executado" rows="3" placeholder="Detalhes do serviço que foi executado..." required><?php echo htmlspecialchars($servico['servico_executado']); ?></textarea>
+        <textarea class="form-control" id="servico_executado" name="servico_executado" rows="3" placeholder="Detalhes do serviço que foi executado..." required><?php echo htmlspecialchars($servico['servico_executado'] ?? ''); ?></textarea>
     </div>
     <div class="row">
         <div class="col-md-4 mb-3">
@@ -310,34 +337,34 @@ if ($mensagem_erro) {
         </div>
         <div class="col-md-4 mb-3">
             <label for="garantia" class="form-label">Garantia (dias - Opcional)</label>
-            <input type="number" class="form-control" id="garantia" name="garantia" placeholder="Ex: 90" min="0" value="<?php echo htmlspecialchars($servico['garantia']); ?>">
+            <input type="number" class="form-control" id="garantia" name="garantia" placeholder="Ex: 90" min="0" value="<?php echo htmlspecialchars($servico['garantia'] ?? ''); ?>">
         </div>
         <div class="col-md-4 mb-3">
             <label for="data_fim_garantia" class="form-label">Data Fim da Garantia</label>
-            <input type="date" class="form-control" id="data_fim_garantia" name="data_fim_garantia" readonly value="<?php echo htmlspecialchars($servico['data_fim_garantia']); ?>">
+            <input type="date" class="form-control" id="data_fim_garantia" name="data_fim_garantia" readonly value="<?php echo htmlspecialchars($servico['data_fim_garantia'] ?? ''); ?>">
         </div>
     </div>
     <div class="row">
         <div class="col-md-6 mb-3">
             <label for="pago" class="form-label">Status de Pagamento <span class="text-danger">*</span></label>
             <select class="form-select" id="pago" name="pago" required>
-                <option value="Sim" <?php echo ($servico['pago'] == 'Sim') ? 'selected' : ''; ?>>Sim</option>
-                <option value="Não" <?php echo ($servico['pago'] == 'Não') ? 'selected' : ''; ?>>Não</option>
+                <option value="Sim" <?php echo (($servico['pago'] ?? '') == 'Sim') ? 'selected' : ''; ?>>Sim</option>
+                <option value="Não" <?php echo (($servico['pago'] ?? '') == 'Não') ? 'selected' : ''; ?>>Não</option>
             </select>
         </div>
         <div class="col-md-6 mb-3">
             <label for="parcelado" class="form-label">Pagamento Parcelado?</label>
             <select class="form-select" id="parcelado" name="parcelado">
-                <option value="Não" <?php echo ($servico['parcelado'] == 'Não') ? 'selected' : ''; ?>>Não</option>
-                <option value="Sim" <?php echo ($servico['parcelado'] == 'Sim') ? 'selected' : ''; ?>>Sim</option>
+                <option value="Não" <?php echo (($servico['parcelado'] ?? '') == 'Não') ? 'selected' : ''; ?>>Não</option>
+                <option value="Sim" <?php echo (($servico['parcelado'] ?? '') == 'Sim') ? 'selected' : ''; ?>>Sim</option>
             </select>
         </div>
     </div>
     <div class="mb-3" id="divNumParcelas">
         <label for="num_parcelas" class="form-label">Número de Parcelas</label>
-        <input type="number" class="form-control" id="num_parcelas" name="num_parcelas" placeholder="Ex: 3" min="1" value="<?php echo htmlspecialchars($servico['num_parcelas']); ?>">
+        <input type="number" class="form-control" id="num_parcelas" name="num_parcelas" placeholder="Ex: 3" min="1" value="<?php echo htmlspecialchars($servico['num_parcelas'] ?? ''); ?>">
     </div>
-    
+
     <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
         <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-save me-2"></i>Salvar Alterações</button>
         <a href="listar_servicos.php" class="btn btn-secondary btn-lg"><i class="bi bi-x-circle me-2"></i>Cancelar</a>
@@ -351,9 +378,7 @@ if ($mensagem_erro) {
         const placaInput = document.getElementById('placa');
         if (placaInput) {
             placaInput.addEventListener('input', function() {
-                // Remove caracteres que não são letras ou números
                 this.value = this.value.replace(/[^a-zA-Z0-9]/g, '');
-                // Converte para maiúsculas
                 this.value = this.value.toUpperCase();
             });
         }
@@ -365,7 +390,6 @@ if ($mensagem_erro) {
         const divNumParcelas = document.getElementById('divNumParcelas');
         const numParcelasInput = document.getElementById('num_parcelas');
 
-        // Lógica para calcular a data de fim da garantia
         function calcularDataFimGarantia() {
             const dataSaidaStr = dataSaidaInput.value;
             const garantiaDias = parseInt(garantiaInput.value);
@@ -373,7 +397,7 @@ if ($mensagem_erro) {
             if (dataSaidaStr && !isNaN(garantiaDias) && garantiaDias > 0) {
                 const dataSaida = new Date(dataSaidaStr + 'T00:00:00');
                 dataSaida.setDate(dataSaida.getDate() + garantiaDias);
-                
+
                 const ano = dataSaida.getFullYear();
                 const mes = String(dataSaida.getMonth() + 1).padStart(2, '0');
                 const dia = String(dataSaida.getDate()).padStart(2, '0');
@@ -389,7 +413,6 @@ if ($mensagem_erro) {
             calcularDataFimGarantia();
         }
 
-        // Lógica para mostrar/esconder o campo de número de parcelas
         function toggleNumParcelas() {
             if (parceladoSelect.value === 'Sim') {
                 divNumParcelas.style.display = 'block';
@@ -407,24 +430,21 @@ if ($mensagem_erro) {
             parceladoSelect.addEventListener('change', toggleNumParcelas);
             toggleNumParcelas();
         }
-        
-        // LÓGICA DO MÁSCARA DE MOEDA
+
         const valorInput = document.getElementById('valor');
         if (valorInput) {
             valorInput.addEventListener('input', function(e) {
                 let value = e.target.value.replace(/\D/g, '');
-                
+
                 if (value.length === 0) {
                     e.target.value = '';
                     return;
                 }
-                
+
                 value = (parseInt(value) / 100).toFixed(2);
                 value = value.replace('.', ',');
-                
-                // Adiciona o separador de milhar
                 value = value.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
-                
+
                 e.target.value = value;
             });
         }
