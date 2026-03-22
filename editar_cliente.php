@@ -1,9 +1,4 @@
-<?php
-// ATENÇÃO: Essas linhas são para DEPURAR erros e devem ser REMOVIDAS em ambiente de produção!
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-// FIM DAS LINHAS DE DEPURACAO
+
 
 // --- FUNÇÕES DE VALIDAÇÃO CPF/CNPJ EM PHP (SERVER-SIDE) ---
 function validarCPF_PHP($cpf) {
