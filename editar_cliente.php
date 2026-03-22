@@ -56,7 +56,7 @@ require_once 'includes/conexao.php';
 
 $mensagem_sucesso = "";
 $mensagem_erro = "";
-$cliente_dados = []; 
+$cliente_dados = [];
 
 // Lógica para carregar os dados do cliente apenas ao abrir a tela
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
@@ -90,7 +90,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $cliente_id = filter_var($_POST['cliente_id'], FILTER_SANITIZE_NUMBER_INT);
     $nome = htmlspecialchars(trim($_POST['nome']));
     $email_temp = trim($_POST['email']);
-    // Se email estiver vazio após trim, define como null
     $email = empty($email_temp) ? null : filter_var($email_temp, FILTER_SANITIZE_EMAIL);
     $cpf_cnpj = htmlspecialchars(trim($_POST['cpf_cnpj']));
     $telefone = htmlspecialchars(trim($_POST['telefone']));
@@ -107,8 +106,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Validação de campos obrigatórios
     if (empty($nome)) {
         $mensagem_erro = "Erro: Nome é obrigatório.";
-    } elseif (empty($telefone)) {
-        $mensagem_erro = "Erro: Telefone é obrigatório.";
     } elseif ($email !== null && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $mensagem_erro = "Erro: Formato de e-mail inválido.";
     } elseif (!empty($cpf_cnpj)) {
@@ -141,21 +138,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $stmt->bindParam(':cpf_cnpj', $cpf_cnpj);
             }
 
-            $stmt->bindParam(':telefone', $telefone);
+            if (empty($telefone)) {
+                $stmt->bindValue(':telefone', null, PDO::PARAM_NULL);
+            } else {
+                $stmt->bindParam(':telefone', $telefone);
+            }
 
-            $stmt->bindValue(':cep', empty($cep) ? NULL : $cep, PDO::PARAM_STR);
-            $stmt->bindValue(':logradouro', empty($logradouro) ? NULL : $logradouro, PDO::PARAM_STR);
-            $stmt->bindValue(':numero', empty($numero) ? NULL : $numero, PDO::PARAM_STR);
-            $stmt->bindValue(':complemento', empty($complemento) ? NULL : $complemento, PDO::PARAM_STR);
-            $stmt->bindValue(':bairro', empty($bairro) ? NULL : $bairro, PDO::PARAM_STR);
-            $stmt->bindValue(':cidade', empty($cidade) ? NULL : $cidade, PDO::PARAM_STR);
-            $stmt->bindValue(':estado', empty($estado) ? NULL : $estado, PDO::PARAM_STR);
+            $stmt->bindValue(':cep', empty($cep) ? null : $cep, PDO::PARAM_STR);
+            $stmt->bindValue(':logradouro', empty($logradouro) ? null : $logradouro, PDO::PARAM_STR);
+            $stmt->bindValue(':numero', empty($numero) ? null : $numero, PDO::PARAM_STR);
+            $stmt->bindValue(':complemento', empty($complemento) ? null : $complemento, PDO::PARAM_STR);
+            $stmt->bindValue(':bairro', empty($bairro) ? null : $bairro, PDO::PARAM_STR);
+            $stmt->bindValue(':cidade', empty($cidade) ? null : $cidade, PDO::PARAM_STR);
+            $stmt->bindValue(':estado', empty($estado) ? null : $estado, PDO::PARAM_STR);
             $stmt->bindParam(':id', $cliente_id, PDO::PARAM_INT);
 
             if ($stmt->execute()) {
                 $_SESSION['cliente_sucesso'] = "Cliente atualizado com sucesso!";
                 header("Location: listar_clientes.php");
-                exit(); 
+                exit();
             } else {
                 $mensagem_erro = "Erro ao atualizar cliente.";
             }
@@ -166,7 +167,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
-// Inclui o header APÓS processar o POST (para evitar erro de headers already sent)
+// Inclui o header APÓS processar o POST
 include 'includes/header.php';
 
 $nome = isset($_POST['nome']) ? htmlspecialchars($_POST['nome']) : (isset($cliente_dados['nome']) ? htmlspecialchars($cliente_dados['nome']) : '');
@@ -221,96 +222,95 @@ $cliente_id_hidden = $cliente_dados['id'] ?? (isset($_POST['cliente_id']) ? $_PO
             <div id="cpfCnpjError" class="text-danger mt-1" style="display: none;"></div>
         </div>
         <div class="col-md-6">
-            <label for="telefone" class="form-label">Telefone:<span class="text-danger">*</span></label>
-            <input type="tel" class="form-control" id="telefone" name="telefone" value="<?php echo $telefone; ?>" required>
+            <label for="telefone" class="form-label">Telefone:</label>
+            <input type="tel" class="form-control" id="telefone" name="telefone" value="<?php echo $telefone; ?>">
         </div>
     </div>
 
     <h5 class="mb-3 text-neon-blue"><i class="bi bi-geo-alt-fill me-2"></i>Endereço (Opcional)</h5>
-<div class="row g-3">
-    <div class="col-md-3">
-        <label for="cep" class="form-label">CEP:</label>
-        <input type="text" class="form-control" id="cep" name="cep" value="<?php echo $cep; ?>" placeholder="00000-000">
+    <div class="row g-3">
+        <div class="col-md-3">
+            <label for="cep" class="form-label">CEP:</label>
+            <input type="text" class="form-control" id="cep" name="cep" value="<?php echo $cep; ?>" placeholder="00000-000">
+        </div>
+
+        <div class="col-md-7">
+            <label for="logradouro" class="form-label">Logradouro:</label>
+            <input type="text" class="form-control" id="logradouro" name="logradouro" value="<?php echo $logradouro; ?>">
+        </div>
+
+        <div class="col-md-2">
+            <label for="numero" class="form-label">Número:</label>
+            <input type="text" class="form-control" id="numero" name="numero" value="<?php echo $numero; ?>">
+        </div>
+
+        <div class="col-md-4">
+            <label for="complemento" class="form-label">Complemento:</label>
+            <input type="text" class="form-control" id="complemento" name="complemento" value="<?php echo $complemento; ?>">
+        </div>
+
+        <div class="col-md-3">
+            <label for="bairro" class="form-label">Bairro:</label>
+            <input type="text" class="form-control" id="bairro" name="bairro" value="<?php echo $bairro; ?>">
+        </div>
+
+        <div class="col-md-3">
+            <label for="cidade" class="form-label">Cidade:</label>
+            <input type="text" class="form-control" id="cidade" name="cidade" value="<?php echo $cidade; ?>">
+        </div>
+
+        <div class="col-md-2">
+            <label for="estado" class="form-label">Estado:</label>
+            <select class="form-select" id="estado" name="estado">
+                <option value="">Selecione</option>
+                <?php
+                $estados = [
+                    "AC" => "Acre",
+                    "AL" => "Alagoas",
+                    "AP" => "Amapá",
+                    "AM" => "Amazonas",
+                    "BA" => "Bahia",
+                    "CE" => "Ceará",
+                    "DF" => "Distrito Federal",
+                    "ES" => "Espírito Santo",
+                    "GO" => "Goiás",
+                    "MA" => "Maranhão",
+                    "MT" => "Mato Grosso",
+                    "MS" => "Mato Grosso do Sul",
+                    "MG" => "Minas Gerais",
+                    "PA" => "Pará",
+                    "PB" => "Paraíba",
+                    "PR" => "Paraná",
+                    "PE" => "Pernambuco",
+                    "PI" => "Piauí",
+                    "RJ" => "Rio de Janeiro",
+                    "RN" => "Rio Grande do Norte",
+                    "RS" => "Rio Grande do Sul",
+                    "RO" => "Rondônia",
+                    "RR" => "Roraima",
+                    "SC" => "Santa Catarina",
+                    "SP" => "São Paulo",
+                    "SE" => "Sergipe",
+                    "TO" => "Tocantins"
+                ];
+
+                foreach ($estados as $uf => $nomeEstado) {
+                    $selected = ($estado === $uf) ? 'selected' : '';
+                    echo "<option value=\"{$uf}\" {$selected}>{$uf} - {$nomeEstado}</option>";
+                }
+                ?>
+            </select>
+        </div>
     </div>
 
-    <div class="col-md-7">
-        <label for="logradouro" class="form-label">Logradouro:</label>
-        <input type="text" class="form-control" id="logradouro" name="logradouro" value="<?php echo $logradouro; ?>">
+    <div class="mt-4 d-flex justify-content-end gap-2 flex-wrap">
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-floppy-fill me-2"></i>Salvar Alterações
+        </button>
+        <a href="listar_clientes.php" class="btn btn-secondary btn-lg">
+            <i class="bi bi-x-circle me-2"></i>Cancelar
+        </a>
     </div>
-
-    <div class="col-md-2">
-        <label for="numero" class="form-label">Número:</label>
-        <input type="text" class="form-control" id="numero" name="numero" value="<?php echo $numero; ?>">
-    </div>
-
-    <div class="col-md-4">
-        <label for="complemento" class="form-label">Complemento:</label>
-        <input type="text" class="form-control" id="complemento" name="complemento" value="<?php echo $complemento; ?>">
-    </div>
-
-    <div class="col-md-3">
-        <label for="bairro" class="form-label">Bairro:</label>
-        <input type="text" class="form-control" id="bairro" name="bairro" value="<?php echo $bairro; ?>">
-    </div>
-
-    <div class="col-md-3">
-        <label for="cidade" class="form-label">Cidade:</label>
-        <input type="text" class="form-control" id="cidade" name="cidade" value="<?php echo $cidade; ?>">
-    </div>
-
-    <div class="col-md-2">
-        <label for="estado" class="form-label">Estado:</label>
-        <select class="form-select" id="estado" name="estado">
-            <option value="">Selecione</option>
-            <?php
-            $estados = [
-                "AC" => "Acre",
-                "AL" => "Alagoas",
-                "AP" => "Amapá",
-                "AM" => "Amazonas",
-                "BA" => "Bahia",
-                "CE" => "Ceará",
-                "DF" => "Distrito Federal",
-                "ES" => "Espírito Santo",
-                "GO" => "Goiás",
-                "MA" => "Maranhão",
-                "MT" => "Mato Grosso",
-                "MS" => "Mato Grosso do Sul",
-                "MG" => "Minas Gerais",
-                "PA" => "Pará",
-                "PB" => "Paraíba",
-                "PR" => "Paraná",
-                "PE" => "Pernambuco",
-                "PI" => "Piauí",
-                "RJ" => "Rio de Janeiro",
-                "RN" => "Rio Grande do Norte",
-                "RS" => "Rio Grande do Sul",
-                "RO" => "Rondônia",
-                "RR" => "Roraima",
-                "SC" => "Santa Catarina",
-                "SP" => "São Paulo",
-                "SE" => "Sergipe",
-                "TO" => "Tocantins"
-            ];
-
-            foreach ($estados as $uf => $nomeEstado) {
-                $selected = ($estado === $uf) ? 'selected' : '';
-                echo "<option value=\"{$uf}\" {$selected}>{$uf} - {$nomeEstado}</option>";
-            }
-            ?>
-        </select>
-    </div>
-</div>
-
-<div class="mt-4 d-flex justify-content-end gap-2 flex-wrap">
-    <button type="submit" class="btn btn-primary btn-lg">
-        <i class="bi bi-floppy-fill me-2"></i>Salvar Alterações
-    </button>
-    <a href="listar_clientes.php" class="btn btn-secondary btn-lg">
-        <i class="bi bi-x-circle me-2"></i>Cancelar
-    </a>
-</div>
-
 </form>
 
 <?php include 'includes/footer.php'; ?>
@@ -319,7 +319,6 @@ $cliente_id_hidden = $cliente_dados['id'] ?? (isset($_POST['cliente_id']) ? $_PO
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
 
 <script>
-    // --- FUNÇÕES DE VALIDAÇÃO MATEMÁTICA CPF/CNPJ EM JAVASCRIPT (CLIENT-SIDE) ---
     function validarCPF_JS(cpf) {
         cpf = cpf.replace(/[^\d]+/g, '');
         if (cpf.length != 11 || /^(\d)\1{10}$/.test(cpf)) return false;
@@ -367,7 +366,6 @@ $cliente_id_hidden = $cliente_dados['id'] ?? (isset($_POST['cliente_id']) ? $_PO
         return true;
     }
 
-    // Função principal de validação do campo
     function validarCpfCnpjCampo() {
         const cpfCnpjField = $('#cpf_cnpj');
         const errorDiv = $('#cpfCnpjError');
