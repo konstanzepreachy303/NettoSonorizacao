@@ -74,6 +74,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
+    // Se placa vier vazia, salva como NULL no banco
+    $placa = empty($placa) ? null : $placa;
+
     // Filtra e sanitiza os outros dados do formulário
     $cliente_id = filter_input(INPUT_POST, 'cliente_id', FILTER_SANITIZE_NUMBER_INT);
     $modelo = htmlspecialchars(trim($_POST['modelo'] ?? ''));
@@ -86,7 +89,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $tipo_servico = htmlspecialchars(trim($_POST['tipo_servico'] ?? ''));
     $descricao_problema = htmlspecialchars(trim($_POST['descricao_problema'] ?? ''));
     $servico_executado = htmlspecialchars(trim($_POST['servico_executado'] ?? ''));
-    // AQUI: A correção do valor para salvar no banco.
     $valor_brl = str_replace(['.', ','], ['', '.'], trim($_POST['valor'] ?? ''));
     $valor = filter_var($valor_brl, FILTER_VALIDATE_FLOAT);
 
@@ -95,8 +97,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $parcelado = htmlspecialchars(trim($_POST['parcelado'] ?? 'Não'));
     $num_parcelas = filter_input(INPUT_POST, 'num_parcelas', FILTER_SANITIZE_NUMBER_INT);
 
+    // Se datas vierem vazias, salva como NULL no banco
+    $data_entrada = empty($data_entrada) ? null : $data_entrada;
+    $data_saida = empty($data_saida) ? null : $data_saida;
+
     // Validação dos campos
-    if (empty($cliente_id) || empty($placa) || empty($data_entrada) || empty($data_saida) || empty($tipo_servico) || empty($descricao_problema) || empty($servico_executado) || $valor === null || $valor === false || $valor < 0 || empty($pago)) {
+    if (empty($cliente_id) || empty($tipo_servico) || empty($descricao_problema) || empty($servico_executado) || $valor === null || $valor === false || $valor < 0 || empty($pago)) {
         $mensagem_erro = "Erro: Por favor, preencha todos os campos obrigatórios corretamente.";
     } elseif ($parcelado === 'Sim' && (empty($num_parcelas) || !is_numeric($num_parcelas) || $num_parcelas <= 0)) {
         $mensagem_erro = "Erro: Se o pagamento for parcelado, o número de parcelas é obrigatório e deve ser um número positivo.";
@@ -112,23 +118,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             VALUES (:cliente_id, :placa, :modelo, :marca, :ano_fab, :ano_mod, :cor, :data_entrada, :data_saida, :tipo_servico, :descricao_problema, :servico_executado, :valor, :garantia, :data_fim_garantia, :pago, :parcelado, :num_parcelas, NOW(), NOW())");
 
             $stmt->bindParam(':cliente_id', $cliente_id, PDO::PARAM_INT);
-            $stmt->bindParam(':placa', $placa, PDO::PARAM_STR);
-            $stmt->bindParam(':modelo', $modelo, PDO::PARAM_STR);
-            $stmt->bindParam(':marca', $marca, PDO::PARAM_STR);
-            $stmt->bindParam(':ano_fab', $ano_fab, PDO::PARAM_INT);
-            $stmt->bindParam(':ano_mod', $ano_mod, PDO::PARAM_INT);
-            $stmt->bindParam(':cor', $cor, PDO::PARAM_STR);
-            $stmt->bindParam(':data_entrada', $data_entrada, PDO::PARAM_STR);
-            $stmt->bindParam(':data_saida', $data_saida, PDO::PARAM_STR);
+
+            if ($placa === null) {
+                $stmt->bindValue(':placa', null, PDO::PARAM_NULL);
+            } else {
+                $stmt->bindParam(':placa', $placa, PDO::PARAM_STR);
+            }
+
+            $stmt->bindValue(':modelo', empty($modelo) ? null : $modelo, PDO::PARAM_STR);
+            $stmt->bindValue(':marca', empty($marca) ? null : $marca, PDO::PARAM_STR);
+            $stmt->bindValue(':ano_fab', empty($ano_fab) ? null : $ano_fab, PDO::PARAM_INT);
+            $stmt->bindValue(':ano_mod', empty($ano_mod) ? null : $ano_mod, PDO::PARAM_INT);
+            $stmt->bindValue(':cor', empty($cor) ? null : $cor, PDO::PARAM_STR);
+            $stmt->bindValue(':data_entrada', $data_entrada, $data_entrada === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+            $stmt->bindValue(':data_saida', $data_saida, $data_saida === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
             $stmt->bindParam(':tipo_servico', $tipo_servico, PDO::PARAM_STR);
             $stmt->bindParam(':descricao_problema', $descricao_problema, PDO::PARAM_STR);
             $stmt->bindParam(':servico_executado', $servico_executado, PDO::PARAM_STR);
             $stmt->bindParam(':valor', $valor);
-            $stmt->bindParam(':garantia', $garantia, PDO::PARAM_INT);
-            $stmt->bindParam(':data_fim_garantia', $data_fim_garantia, PDO::PARAM_STR);
+            $stmt->bindValue(':garantia', empty($garantia) ? null : $garantia, empty($garantia) ? PDO::PARAM_NULL : PDO::PARAM_INT);
+            $stmt->bindValue(':data_fim_garantia', $data_fim_garantia, $data_fim_garantia === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
             $stmt->bindParam(':pago', $pago, PDO::PARAM_STR);
             $stmt->bindParam(':parcelado', $parcelado, PDO::PARAM_STR);
-            $stmt->bindParam(':num_parcelas', $num_parcelas, PDO::PARAM_INT);
+            $stmt->bindValue(':num_parcelas', empty($num_parcelas) ? null : $num_parcelas, empty($num_parcelas) ? PDO::PARAM_NULL : PDO::PARAM_INT);
 
             if ($stmt->execute()) {
                 $mensagem_sucesso = "Serviço cadastrado com sucesso!";
@@ -138,19 +150,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $mensagem_erro = "Erro ao cadastrar serviço: " . ($errorInfo[2] ?? "Erro desconhecido.");
                 error_log("Erro PDO (INSERT) em cadastrar_servico.php: " . ($errorInfo[2] ?? "Erro desconhecido."));
                 // Preenche as variáveis "old" para manter os dados no formulário
-                $placa_old = $placa;
+                $placa_old = $placa ?? '';
                 $cliente_id_old = $cliente_id;
                 $modelo_old = $modelo;
                 $marca_old = $marca;
                 $ano_fab_old = $ano_fab;
                 $ano_mod_old = $ano_mod;
                 $cor_old = $cor;
-                $data_entrada_old = $data_entrada;
-                $data_saida_old = $data_saida;
+                $data_entrada_old = $data_entrada ?? '';
+                $data_saida_old = $data_saida ?? '';
                 $tipo_servico_old = $tipo_servico;
                 $descricao_problema_old = $descricao_problema;
                 $servico_executado_old = $servico_executado;
-                $valor_old = $valor;
+                $valor_old = $_POST['valor'] ?? '';
                 $garantia_old = $garantia;
                 $data_fim_garantia_old = $data_fim_garantia;
                 $pago_old = $pago;
@@ -161,21 +173,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $mensagem_erro = "Erro no banco de dados ao cadastrar serviço: " . $e->getMessage();
             error_log("Erro PDO geral no cadastro de serviço: " . $e->getMessage());
             // Preenche as variáveis "old" em caso de erro no try-catch
-            $placa_old = $placa;
+            $placa_old = $placa ?? '';
             $cliente_id_old = $cliente_id;
             $modelo_old = $modelo;
             $marca_old = $marca;
             $ano_fab_old = $ano_fab;
             $ano_mod_old = $ano_mod;
             $cor_old = $cor;
-            $data_entrada_old = $data_entrada;
-            $data_saida_old = $data_saida;
+            $data_entrada_old = $data_entrada ?? '';
+            $data_saida_old = $data_saida ?? '';
             $tipo_servico_old = $tipo_servico;
             $descricao_problema_old = $descricao_problema;
             $servico_executado_old = $servico_executado;
-            $valor_old = $valor;
+            $valor_old = $_POST['valor'] ?? '';
             $garantia_old = $garantia;
-            $data_fim_garantia_old = $data_fim_garantia;
+            $data_fim_garantia_old = $data_fim_garantia ?? '';
             $pago_old = $pago;
             $parcelado_old = $parcelado;
             $num_parcelas_old = $num_parcelas;
@@ -245,12 +257,12 @@ if ($mensagem_erro) {
 
     <div class="row">
         <div class="col-md-6 mb-3">
-            <label for="data_entrada" class="form-label">Data de Entrada <span class="text-danger">*</span></label>
-            <input type="date" class="form-control" id="data_entrada" name="data_entrada" value="<?php echo htmlspecialchars($data_entrada_old); ?>" required>
+            <label for="data_entrada" class="form-label">Data de Entrada</label>
+            <input type="date" class="form-control" id="data_entrada" name="data_entrada" value="<?php echo htmlspecialchars($data_entrada_old); ?>">
         </div>
         <div class="col-md-6 mb-3">
-            <label for="data_saida" class="form-label">Data de Saída <span class="text-danger">*</span></label>
-            <input type="date" class="form-control" id="data_saida" name="data_saida" value="<?php echo htmlspecialchars($data_saida_old); ?>" required>
+            <label for="data_saida" class="form-label">Data de Saída</label>
+            <input type="date" class="form-control" id="data_saida" name="data_saida" value="<?php echo htmlspecialchars($data_saida_old); ?>">
         </div>
     </div>
 
@@ -258,8 +270,8 @@ if ($mensagem_erro) {
     <h5 class="mb-3 text-neon-blue"><i class="bi bi-car-fill me-2"></i>Informações do Equipamento/Veículo (Opcional)</h5>
     <div class="row">
         <div class="col-md-4 mb-3">
-            <label for="placa" class="form-label">Placa <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" id="placa" name="placa" placeholder="ABC-1234" value="<?php echo htmlspecialchars($placa_old); ?>" required>
+            <label for="placa" class="form-label">Placa</label>
+            <input type="text" class="form-control" id="placa" name="placa" placeholder="ABC-1234" value="<?php echo htmlspecialchars($placa_old); ?>">
         </div>
         <div class="col-md-4 mb-3">
             <label for="modelo" class="form-label">Modelo</label>
@@ -398,7 +410,7 @@ if ($mensagem_erro) {
         if (overlay) {
             setTimeout(() => {
                 window.location.href = 'listar_servicos.php';
-            }, 2000); // Redireciona após 2 segundos
+            }, 2000);
         }
     });
 </script>
@@ -409,9 +421,7 @@ if ($mensagem_erro) {
         const placaInput = document.getElementById('placa');
         if (placaInput) {
             placaInput.addEventListener('input', function() {
-                // Remove caracteres que não são letras ou números
                 this.value = this.value.replace(/[^a-zA-Z0-9]/g, '');
-                // Converte para maiúsculas
                 this.value = this.value.toUpperCase();
             });
         }
@@ -461,7 +471,6 @@ if ($mensagem_erro) {
             toggleNumParcelas();
         }
 
-        // LÓGICA DO MÁSCARA DE MOEDA
         const valorInput = document.getElementById('valor');
         if (valorInput) {
             valorInput.addEventListener('input', function(e) {
@@ -474,8 +483,6 @@ if ($mensagem_erro) {
 
                 value = (parseInt(value) / 100).toFixed(2);
                 value = value.replace('.', ',');
-
-                // Adiciona o separador de milhar
                 value = value.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
 
                 e.target.value = value;
