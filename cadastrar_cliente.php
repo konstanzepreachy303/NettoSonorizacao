@@ -75,12 +75,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Se CPF/CNPJ vier vazio, salva como NULL no banco
     $cpf_cnpj = empty($cpf_cnpj) ? null : $cpf_cnpj;
+    // Se telefone vier vazio, salva como NULL no banco
+    $telefone = empty($telefone) ? null : $telefone;
 
     // Validação de campos obrigatórios
     if (empty($nome)) {
         $mensagem_erro = "Nome é obrigatório.";
-    } elseif (empty($telefone)) {
-        $mensagem_erro = "Telefone é obrigatório.";
     }
 
     // Validação de e-mail usando filter_var (opcional - só valida se preenchido)
@@ -121,14 +121,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $stmt->bindParam(':cpf_cnpj', $cpf_cnpj);
             }
 
-            $stmt->bindParam(':telefone', $telefone);
-            $stmt->bindParam(':cep', $cep);
-            $stmt->bindParam(':logradouro', $logradouro);
-            $stmt->bindParam(':numero', $numero);
-            $stmt->bindParam(':complemento', $complemento);
-            $stmt->bindParam(':bairro', $bairro);
-            $stmt->bindParam(':cidade', $cidade);
-            $stmt->bindParam(':estado', $estado);
+            if ($telefone === null) {
+                $stmt->bindValue(':telefone', null, PDO::PARAM_NULL);
+            } else {
+                $stmt->bindParam(':telefone', $telefone);
+            }
+
+            $stmt->bindValue(':cep', empty($cep) ? null : $cep, PDO::PARAM_STR);
+            $stmt->bindValue(':logradouro', empty($logradouro) ? null : $logradouro, PDO::PARAM_STR);
+            $stmt->bindValue(':numero', empty($numero) ? null : $numero, PDO::PARAM_STR);
+            $stmt->bindValue(':complemento', empty($complemento) ? null : $complemento, PDO::PARAM_STR);
+            $stmt->bindValue(':bairro', empty($bairro) ? null : $bairro, PDO::PARAM_STR);
+            $stmt->bindValue(':cidade', empty($cidade) ? null : $cidade, PDO::PARAM_STR);
+            $stmt->bindValue(':estado', empty($estado) ? null : $estado, PDO::PARAM_STR);
 
             if ($stmt->execute()) {
                 $_SESSION['cliente_sucesso'] = "Cliente cadastrado com sucesso!";
@@ -186,8 +191,8 @@ include 'includes/header.php';
                     <div id="cpfCnpjError" class="text-danger mt-2" style="display:none;"></div>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label for="telefone" class="form-label">Telefone <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="telefone" name="telefone" placeholder="(99) 99999-9999" required>
+                    <label for="telefone" class="form-label">Telefone</label>
+                    <input type="text" class="form-control" id="telefone" name="telefone" placeholder="(99) 99999-9999">
                 </div>
             </div>
 
