@@ -1,4 +1,4 @@
-
+<?php
 // Inicia a sessão para acesso às variáveis de sessão e controle de login
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
