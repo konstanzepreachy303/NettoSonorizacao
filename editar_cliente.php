@@ -103,44 +103,51 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Validação de campos obrigatórios
     if (empty($nome)) {
         $mensagem_erro = "Erro: Nome é obrigatório.";
-    } elseif (empty($cpf_cnpj)) {
-        $mensagem_erro = "Erro: CPF/CNPJ é obrigatório.";
     } elseif (empty($telefone)) {
         $mensagem_erro = "Erro: Telefone é obrigatório.";
     } elseif ($email !== null && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $mensagem_erro = "Erro: Formato de e-mail inválido.";
-    } elseif (strlen($cpf_cnpj_limpo) !== 11 && strlen($cpf_cnpj_limpo) !== 14) {
-        $mensagem_erro = "Erro: CPF/CNPJ deve conter 11 ou 14 dígitos.";
-    } elseif (strlen($cpf_cnpj_limpo) === 11 && !validarCPF_PHP($cpf_cnpj_limpo)) {
-        $mensagem_erro = "Erro: CPF inválido. Por favor, verifique os números.";
-    } elseif (strlen($cpf_cnpj_limpo) === 14 && !validarCNPJ_PHP($cpf_cnpj_limpo)) {
-        $mensagem_erro = "Erro: CNPJ inválido. Por favor, verifique os números.";
-    } elseif (!$cliente_id) {
+    } elseif (!empty($cpf_cnpj)) {
+        if (strlen($cpf_cnpj_limpo) !== 11 && strlen($cpf_cnpj_limpo) !== 14) {
+            $mensagem_erro = "Erro: CPF/CNPJ deve conter 11 ou 14 dígitos.";
+        } elseif (strlen($cpf_cnpj_limpo) === 11 && !validarCPF_PHP($cpf_cnpj_limpo)) {
+            $mensagem_erro = "Erro: CPF inválido. Por favor, verifique os números.";
+        } elseif (strlen($cpf_cnpj_limpo) === 14 && !validarCNPJ_PHP($cpf_cnpj_limpo)) {
+            $mensagem_erro = "Erro: CNPJ inválido. Por favor, verifique os números.";
+        }
+    }
+
+    if (empty($mensagem_erro) && !$cliente_id) {
         $mensagem_erro = "Erro: ID do cliente para edição não fornecido ou inválido.";
-    } else {
+    } elseif (empty($mensagem_erro)) {
         try {
             $stmt = $pdo->prepare("UPDATE clientes SET nome = :nome, email = :email, cpf_cnpj = :cpf_cnpj, telefone = :telefone, cep = :cep, logradouro = :logradouro, numero = :numero, complemento = :complemento, bairro = :bairro, cidade = :cidade, estado = :estado WHERE id = :id");
 
-                $stmt->bindParam(':nome', $nome);
-                // Email pode ser NULL se vazio - usar bindValue com PDO::PARAM_NULL
-                // Email também pode ser duplicado entre clientes diferentes
-                if ($email === null) {
-                    $stmt->bindValue(':email', null, PDO::PARAM_NULL);
-                } else {
-                    $stmt->bindParam(':email', $email);
-                }
+            $stmt->bindParam(':nome', $nome);
+
+            if ($email === null) {
+                $stmt->bindValue(':email', null, PDO::PARAM_NULL);
+            } else {
+                $stmt->bindParam(':email', $email);
+            }
+
+            if (empty($cpf_cnpj)) {
+                $stmt->bindValue(':cpf_cnpj', null, PDO::PARAM_NULL);
+            } else {
                 $stmt->bindParam(':cpf_cnpj', $cpf_cnpj);
-                $stmt->bindParam(':telefone', $telefone);
-                
-                $stmt->bindValue(':cep', empty($cep) ? NULL : $cep, PDO::PARAM_STR);
-                $stmt->bindValue(':logradouro', empty($logradouro) ? NULL : $logradouro, PDO::PARAM_STR);
-                $stmt->bindValue(':numero', empty($numero) ? NULL : $numero, PDO::PARAM_STR);
-                $stmt->bindValue(':complemento', empty($complemento) ? NULL : $complemento, PDO::PARAM_STR);
-                $stmt->bindValue(':bairro', empty($bairro) ? NULL : $bairro, PDO::PARAM_STR);
-                $stmt->bindValue(':cidade', empty($cidade) ? NULL : $cidade, PDO::PARAM_STR);
-                $stmt->bindValue(':estado', empty($estado) ? NULL : $estado, PDO::PARAM_STR);
-                $stmt->bindParam(':id', $cliente_id, PDO::PARAM_INT);
-                
+            }
+
+            $stmt->bindParam(':telefone', $telefone);
+
+            $stmt->bindValue(':cep', empty($cep) ? NULL : $cep, PDO::PARAM_STR);
+            $stmt->bindValue(':logradouro', empty($logradouro) ? NULL : $logradouro, PDO::PARAM_STR);
+            $stmt->bindValue(':numero', empty($numero) ? NULL : $numero, PDO::PARAM_STR);
+            $stmt->bindValue(':complemento', empty($complemento) ? NULL : $complemento, PDO::PARAM_STR);
+            $stmt->bindValue(':bairro', empty($bairro) ? NULL : $bairro, PDO::PARAM_STR);
+            $stmt->bindValue(':cidade', empty($cidade) ? NULL : $cidade, PDO::PARAM_STR);
+            $stmt->bindValue(':estado', empty($estado) ? NULL : $estado, PDO::PARAM_STR);
+            $stmt->bindParam(':id', $cliente_id, PDO::PARAM_INT);
+
             if ($stmt->execute()) {
                 $_SESSION['cliente_sucesso'] = "Cliente atualizado com sucesso!";
                 header("Location: listar_clientes.php");
@@ -193,7 +200,7 @@ $cliente_id_hidden = $cliente_dados['id'] ?? (isset($_POST['cliente_id']) ? $_PO
 
 <form action="editar_cliente.php" method="POST" class="bg-dark p-4 rounded shadow-lg text-white" id="clienteForm">
     <input type="hidden" name="cliente_id" value="<?php echo htmlspecialchars($cliente_id_hidden); ?>">
-    
+
     <h5 class="mb-3 text-neon-blue"><i class="bi bi-person-fill me-2"></i>Dados Pessoais</h5>
     <div class="row g-3 mb-4">
         <div class="col-md-6">
@@ -205,8 +212,8 @@ $cliente_id_hidden = $cliente_dados['id'] ?? (isset($_POST['cliente_id']) ? $_PO
             <input type="email" class="form-control" id="email" name="email" value="<?php echo $email; ?>">
         </div>
         <div class="col-md-6">
-            <label for="cpf_cnpj" class="form-label">CPF/CNPJ:<span class="text-danger">*</span></label>
-            <input type="text" class="form-control" id="cpf_cnpj" name="cpf_cnpj" value="<?php echo $cpf_cnpj; ?>" required>
+            <label for="cpf_cnpj" class="form-label">CPF/CNPJ:</label>
+            <input type="text" class="form-control" id="cpf_cnpj" name="cpf_cnpj" value="<?php echo $cpf_cnpj; ?>">
             <div id="cpfCnpjError" class="text-danger mt-1" style="display: none;"></div>
         </div>
         <div class="col-md-6">
@@ -299,7 +306,7 @@ $cliente_id_hidden = $cliente_dados['id'] ?? (isset($_POST['cliente_id']) ? $_PO
         <i class="bi bi-x-circle me-2"></i>Cancelar
     </a>
 </div>
-    
+
 </form>
 
 <?php include 'includes/footer.php'; ?>
@@ -363,6 +370,10 @@ $cliente_id_hidden = $cliente_dados['id'] ?? (isset($_POST['cliente_id']) ? $_PO
         const rawValue = cpfCnpjField.val().replace(/[^\d]+/g, '');
         errorDiv.hide().text('');
 
+        if (rawValue.length === 0) {
+            return true;
+        }
+
         if (rawValue.length === 11) {
             if (!validarCPF_JS(rawValue)) {
                 errorDiv.text('CPF inválido. Por favor, verifique os números.').show();
@@ -382,7 +393,7 @@ $cliente_id_hidden = $cliente_dados['id'] ?? (isset($_POST['cliente_id']) ? $_PO
         }
         return true;
     }
-    
+
     $(document).ready(function() {
         $('#telefone').mask('(00) 00000-0000');
         $('#cep').mask('00000-000');
@@ -405,7 +416,8 @@ $cliente_id_hidden = $cliente_dados['id'] ?? (isset($_POST['cliente_id']) ? $_PO
         });
 
         $('#clienteForm').on('submit', function(e) {
-            if (!validarCpfCnpjCampo()) {
+            const valor = $('#cpf_cnpj').val().replace(/[^\d]+/g, '');
+            if (valor.length > 0 && !validarCpfCnpjCampo()) {
                 e.preventDefault();
                 $('html, body').animate({
                     scrollTop: $('#cpfCnpjError').offset().top - 100
@@ -416,7 +428,12 @@ $cliente_id_hidden = $cliente_dados['id'] ?? (isset($_POST['cliente_id']) ? $_PO
         });
 
         $('#cpf_cnpj').on('blur', function() {
-            validarCpfCnpjCampo();
+            const valor = $(this).val().replace(/[^\d]+/g, '');
+            if (valor.length > 0) {
+                validarCpfCnpjCampo();
+            } else {
+                $('#cpfCnpjError').hide().text('');
+            }
         });
     });
 </script>
