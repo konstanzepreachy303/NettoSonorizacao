@@ -58,27 +58,31 @@ $mensagem_sucesso = "";
 $mensagem_erro = "";
 $cliente_dados = []; 
 
-// Lógica para carregar os dados do cliente
-if (isset($_GET['id']) && !empty($_GET['id'])) {
-    $cliente_id = filter_var($_GET['id'], FILTER_SANITIZE_NUMBER_INT);
-    if ($cliente_id) {
-        try {
-            $stmt = $pdo->prepare("SELECT * FROM clientes WHERE id = :id");
-            $stmt->bindParam(':id', $cliente_id, PDO::PARAM_INT);
-            $stmt->execute();
-            $cliente_dados = $stmt->fetch(PDO::FETCH_ASSOC);
-            if (!$cliente_dados) {
-                $mensagem_erro = "Cliente não encontrado.";
+// Lógica para carregar os dados do cliente apenas ao abrir a tela
+if ($_SERVER["REQUEST_METHOD"] !== "POST") {
+    if (isset($_GET['id']) && !empty($_GET['id'])) {
+        $cliente_id = filter_var($_GET['id'], FILTER_SANITIZE_NUMBER_INT);
+
+        if ($cliente_id) {
+            try {
+                $stmt = $pdo->prepare("SELECT * FROM clientes WHERE id = :id");
+                $stmt->bindParam(':id', $cliente_id, PDO::PARAM_INT);
+                $stmt->execute();
+                $cliente_dados = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$cliente_dados) {
+                    $mensagem_erro = "Cliente não encontrado.";
+                }
+            } catch (PDOException $e) {
+                $mensagem_erro = "Erro ao carregar dados do cliente: " . $e->getMessage();
+                error_log("Erro no PDO ao carregar cliente para edição: " . $e->getMessage());
             }
-        } catch (PDOException $e) {
-            $mensagem_erro = "Erro ao carregar dados do cliente: " . $e->getMessage();
-            error_log("Erro no PDO ao carregar cliente para edição: " . $e->getMessage());
+        } else {
+            $mensagem_erro = "ID de cliente inválido.";
         }
     } else {
-        $mensagem_erro = "ID de cliente inválido.";
+        $mensagem_erro = "Nenhum ID de cliente fornecido para edição.";
     }
-} else {
-    $mensagem_erro = "Nenhum ID de cliente fornecido para edição.";
 }
 
 // Lógica para processar a atualização
@@ -198,7 +202,7 @@ $cliente_id_hidden = $cliente_dados['id'] ?? (isset($_POST['cliente_id']) ? $_PO
 
 <p class="text-white text-center mb-4">Edite as informações do cliente. Campos marcados com <span class="text-danger">*</span> são obrigatórios.</p>
 
-<form action="editar_cliente.php" method="POST" class="bg-dark p-4 rounded shadow-lg text-white" id="clienteForm">
+<form action="editar_cliente.php?id=<?php echo urlencode($cliente_id_hidden); ?>" method="POST" class="bg-dark p-4 rounded shadow-lg text-white" id="clienteForm">
     <input type="hidden" name="cliente_id" value="<?php echo htmlspecialchars($cliente_id_hidden); ?>">
 
     <h5 class="mb-3 text-neon-blue"><i class="bi bi-person-fill me-2"></i>Dados Pessoais</h5>
